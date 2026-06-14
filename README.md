@@ -1,0 +1,2 @@
+# IBC
+Intensity Based Clustering
