@@ -125,7 +125,7 @@ def scan_dimensions(R, d_max=10, W=None):
 
     for d in range(1, d_max + 1):
         print(f"Scanning dimension {d}...")
-        X, phi_val = optimize_X(R, d, W=W)
+        X, phi_val = optimize_X(R, d, W=W, use_spectral_init=False)
         phi_values.append(phi_val)
         X_values.append(X)
 

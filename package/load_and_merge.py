@@ -1,6 +1,11 @@
 import gemmi
 import glob
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+
+prefetch_pool = ThreadPoolExecutor(
+    max_workers=8
+)
 
 def read_hkl_file(path):
     """
@@ -108,6 +113,19 @@ def merge_symmetry_equivalents(dataset, sg_symbol="P212121"):
 
     return merged
 
+def merge_single_dataset(path, sg_symbol):
+    print(f"Loading and merging dataset: {path}")
+    dataset = read_hkl_file(path)
+
+    dataset = merge_symmetry_equivalents(
+        dataset,
+        sg_symbol=sg_symbol
+    )
+
+    return dataset, path
+
+
+
 def load_and_merge_datasets(folder, sg_symbol="P212121"):
     """
     - Converts reflection to canonical symmetry representative
@@ -133,18 +151,19 @@ def load_and_merge_datasets(folder, sg_symbol="P212121"):
     """
 
     datasets = {}
+    futures = []
 
     for path in glob.glob(f"{folder}/*.HKL")[0:6]:
-
-        print(f"Preparing dataset {path}...")
-
-        dataset = read_hkl_file(path)
-
-        dataset = merge_symmetry_equivalents(
-            dataset,
-            sg_symbol=sg_symbol
+        futures.append(
+            prefetch_pool.submit(
+                merge_single_dataset,
+                path,
+                sg_symbol,
+            )
         )
 
+    for future in futures:
+        dataset, path = future.result()
         datasets[path] = dataset
 
     return datasets
