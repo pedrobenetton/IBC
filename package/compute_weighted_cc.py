@@ -1,4 +1,5 @@
 import numpy as np
+import dask
 
 def merge_intensity_and_sigma(I, sigma):
     """
@@ -29,27 +30,6 @@ def merge_intensity_and_sigma(I, sigma):
     merged_sigma = np.sqrt(1.0 / np.sum(weights))
 
     return merged_intensity, merged_sigma
-
-def compute_merged_dataset_with_sigma(dataset):
-    """
-    Merge all reflections in a dataset.
-
-    Parameters
-    ----------
-    dataset : dict
-        Keys = reflection ids (e.g. hkl)
-        Values = (I_array, sigma_array)
-
-    Returns
-    -------
-    dict
-        Keys = reflection ids
-        Values = (merged_intensity, merged_sigma)
-    """
-    merged = {}
-    for refl, (I, sigma) in dataset.items():
-        merged[refl] = merge_intensity_and_sigma(I, sigma)
-    return merged
 
 def weighted_cc(x, y, sigma_x, sigma_y):
     """
@@ -95,49 +75,35 @@ def weighted_cc(x, y, sigma_x, sigma_y):
 
     return cc
 
-def compute_weighted_cc_between_datasets(dataset_x, dataset_y):
+@dask.delayed
+def compute_pairwise_cc(merged_x, merged_y):
     """
-    - Merge intensities and compute uncertainties
-    - Select common reflections
-    - Compute weighted Pearson CC
-
-    Parameters
-    ----------
-    dataset_x, dataset_y : dict
-        Keys = reflection ids (e.g. hkl)
-        Values = (I_array, sigma_array)
-
-    Returns
-    -------
-    float
-        Weighted correlation coefficient
+    Computes CC between two ALREADY merged datasets (Parallelizable)
     """
-    merged_x = compute_merged_dataset_with_sigma(dataset_x)
-    merged_y = compute_merged_dataset_with_sigma(dataset_y)
-    # merged_x and merged_y are dictionaries
-    # whose values are tuples
-    # TODO: compute_merged_dataset_with_sigma should be called
-    # outside this function, so it doesn't re-run for each
-    # dataset on every cc calculation
-
     common_keys = set(merged_x.keys()) & set(merged_y.keys())
+    if not common_keys:
+        return 0.0, 0
 
-    x_vals = []
-    y_vals = []
-    sigma_x_vals = []
-    sigma_y_vals = []
+    x_vals, y_vals, sigma_x_vals, sigma_y_vals = [], [], [], []
 
     for k in common_keys:
         x, sx = merged_x[k]
         y, sy = merged_y[k]
-
         x_vals.append(x)
         y_vals.append(y)
         sigma_x_vals.append(sx)
         sigma_y_vals.append(sy)
     
     cc = weighted_cc(x_vals, y_vals, sigma_x_vals, sigma_y_vals)
-
     n_common = len(common_keys)
-
     return cc, n_common
+
+@dask.delayed
+def compute_merged_dataset_with_sigma(dataset):
+    """
+    Merge all reflections in a single dataset
+    """
+    merged = {}
+    for refl, (I, sigma) in dataset.items():
+        merged[refl] = merge_intensity_and_sigma(I, sigma)
+    return merged

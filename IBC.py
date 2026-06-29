@@ -1,6 +1,6 @@
 import numpy as np
 
-from package.load_and_merge import load_and_merge_datasets
+from package.load_and_canonicalize import load_and_canonicalize_datasets
 from package.build_cc_matrix import build_cc_matrix
 from package.optimize import scan_dimensions
 from package.find_elbow import find_elbow
@@ -11,16 +11,16 @@ def main():
 
     print_separator("Loading and merging reflections from all datasets")
 
-    merged_datasets = load_and_merge_datasets(
+    canonical_datasets = load_and_canonicalize_datasets(
         "datasets",
         sg_symbol="P21"
     )
 
-    print(f"Datasets loaded: {len(merged_datasets)}")
+    print(f"Datasets loaded: {len(canonical_datasets)}")
 
     print_separator("Building correlation matrix")
 
-    names, R, W = build_cc_matrix(merged_datasets)
+    names, R, W = build_cc_matrix(canonical_datasets)
 
     print("\nCorrelation matrix:")
     print(np.array_str(R, precision=3, suppress_small=True))

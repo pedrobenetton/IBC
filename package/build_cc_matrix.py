@@ -1,65 +1,53 @@
 import numpy as np
-from package.compute_cc import compute_cc_between_datasets
-from package.compute_weighted_cc import compute_weighted_cc_between_datasets
+import dask
+from package.compute_weighted_cc import compute_merged_dataset_with_sigma, compute_pairwise_cc
 
-def build_cc_matrix(datasets, weighted=True, use_counts_as_weights = False):
+def build_cc_matrix(canonical_datasets, weighted=True, use_counts_as_weights=False):
 
-    names = list(datasets.keys())
+    names = list(canonical_datasets.keys())
 
     n = len(names)
 
-    total = (n * (n - 1)) // 2
+    print("Pre-merging reflections across all datasets...")
+    pre_merged_datasets = {}
+    for name in names:
+        pre_merged_datasets[name] = compute_merged_dataset_with_sigma(canonical_datasets[name])
 
-    counter = 0
-
-    R = np.eye(n)
-
-    N = np.zeros((n, n))
+    print("Building pairwise correlation task graph...")
+    lazy_pairs = []
+    pair_indices = []
 
     for i in range(n):
-
         for j in range(i + 1, n):
+            lazy_task = compute_pairwise_cc(
+                pre_merged_datasets[names[i]], 
+                pre_merged_datasets[names[j]]
+            )
+            lazy_pairs.append(lazy_task)
+            pair_indices.append((i, j))
 
-            counter += 1
+    print(f"Triggering computation for {len(lazy_pairs)} unique pairs...")
+    computed_pairs = dask.delayed(lazy_pairs).compute()
 
-            print(f"{counter:03d}/{total}: {names[i]} vs {names[j]} ")
+    R = np.eye(n)
+    N = np.zeros((n, n))
 
-            if weighted:
-
-                cc, n_common = compute_weighted_cc_between_datasets(
-                    datasets[names[i]],
-                    datasets[names[j]]
-                )
-
-            else:
-
-                cc, n_common = compute_cc_between_datasets(
-                    datasets[names[i]],
-                    datasets[names[j]]
-                )
-
-            R[i, j] = cc
-            R[j, i] = cc
-
-            N[i, j] = n_common
-            N[j, i] = n_common
+    for (i, j), (cc, n_common) in zip(pair_indices, computed_pairs):
+        if np.isnan(cc):
+            cc = 0.0
+        R[i, j] = cc
+        R[j, i] = cc
+        N[i, j] = n_common
+        N[j, i] = n_common
 
     if use_counts_as_weights:
-
         W = N
-
     else:
-
         W = np.zeros_like(R)
-
         mask = N > 1
-
         W[mask] = (np.sqrt(N[mask] - 1) / (1 - R[mask]**2))
-
-        scale = (np.count_nonzero(W) / np.sum(W))
-
+        scale = (np.count_nonzero(W) / np.sum(W)) if np.sum(W) > 0 else 1.0
         W *= scale
 
-    print("\nDone.\n")
-
+    print("\nMatrix generation complete.\n")
     return names, R, W
