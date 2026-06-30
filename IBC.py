@@ -6,8 +6,11 @@ from package.optimize import scan_dimensions
 from package.find_elbow import find_elbow
 from package.optics_clustering import run_optics_clustering, plot_reachability
 from utils.print_utils import print_cluster_summary, print_phi_table, print_separator
+import dask.distributed
 
 def main():
+
+    client = dask.distributed.Client(threads_per_worker=1)
 
     print_separator("Loading and merging reflections from all datasets")
 
