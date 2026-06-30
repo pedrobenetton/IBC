@@ -1,1 +1,4 @@
 **/__pycache__
+datasets
+environment.txt
+dask_profile_*
