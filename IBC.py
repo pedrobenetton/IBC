@@ -1,16 +1,18 @@
 import numpy as np
+from datetime import datetime
+import dask.distributed
+from dask.diagnostics import Profiler, ResourceProfiler, visualize
 
 from package.load_and_canonicalize import load_and_canonicalize_datasets
 from package.build_cc_matrix import build_cc_matrix
 from package.optimize import scan_dimensions
 from package.find_elbow import find_elbow
-from package.optics_clustering import run_optics_clustering, plot_reachability
+from package.optics_clustering import run_optics_clustering, plot_reachability, plot_points
 from utils.print_utils import print_cluster_summary, print_phi_table, print_separator
-import dask.distributed
 
-def main():
+def pipeline_function():
 
-    client = dask.distributed.Client(threads_per_worker=1)
+    client = dask.distributed.Client(threads_per_worker=4)
 
     print_separator("Loading and merging reflections from all datasets")
 
@@ -65,6 +67,13 @@ def main():
         print(f"{name:30s} -> {label}")
 
     plot_reachability(model)
+
+def main():
+    with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof:
+        pipeline_function()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_filename = f"dask_profile_{timestamp}.html"
+    visualize([prof, rprof], filename=report_filename)
 
 if __name__ == '__main__':
     main()
