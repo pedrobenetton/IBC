@@ -1,7 +1,9 @@
 import numpy as np
 from datetime import datetime
+import time
 import dask.distributed
 from dask.diagnostics import Profiler, ResourceProfiler, visualize
+import os
 
 from package.load_and_canonicalize import load_and_canonicalize_datasets
 from package.build_cc_matrix import build_cc_matrix
@@ -69,8 +71,17 @@ def pipeline_function():
     plot_reachability(model)
 
 def main():
+    try:
+        available_cpus = len(os.sched_getaffinity(0))
+    except AttributeError:
+        available_cpus = os.cpu_count()
+    start_time = time.perf_counter()
     with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof:
         pipeline_function()
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    print(f"\nTotal time taken: {elapsed_time:.2f} seconds")
+    print(f"CPUs utilized: {available_cpus}\n")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_filename = f"dask_profile_{timestamp}.html"
     visualize([prof, rprof], filename=report_filename)

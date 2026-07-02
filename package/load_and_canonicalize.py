@@ -53,7 +53,7 @@ def load_and_canonicalize_datasets(folder, sg_symbol="C121"):
     lazy_results = []
     path_list = []
 
-    for path in glob.glob(f"{folder}/*.HKL"):
+    for path in sorted(glob.glob(f"{folder}/*.HKL")):
         lazy_dataset, file_path = load_and_canonicalize_single_dataset(path, sg_symbol)
         path_list.append(file_path)
         lazy_results.append((lazy_dataset))

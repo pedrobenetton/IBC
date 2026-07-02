@@ -76,3 +76,12 @@ def plot_reachability(model):
     plt.title("OPTICS Reachability Plot")
 
     plt.show()
+
+def plot_points(X):
+    plt.figure(figsize=(8, 6))
+    plt.scatter(X[:, 0], X[:, 1], color='royalblue', alpha=0.8, edgecolors='k', s=80)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.xlabel("Dimension 1", fontsize=12)
+    plt.ylabel("Dimension 2", fontsize=12)
+    plt.title(f"Final Embedding (Shape: {X.shape})", fontsize=14, fontweight='bold')
+    plt.show()
