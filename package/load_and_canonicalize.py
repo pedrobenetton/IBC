@@ -5,7 +5,7 @@ import dask
 
 @dask.delayed
 def read_hkl_file(path):
-    print(f"Reading HKL file: {path}")
+    #print(f"Reading HKL file: {path}")
     dataset = defaultdict(lambda: ([], []))
 
     with open(path) as f:
@@ -32,7 +32,7 @@ def canonicalize_hkl(hkl, spacegroup):
 
 @dask.delayed
 def group_symmetry_equivalents(dataset, sg_symbol="C121"):
-    print(f"Grouping symmetry equivalents for dataset")
+    #print(f"Grouping symmetry equivalents for dataset")
     sg = gemmi.SpaceGroup(sg_symbol)
     merged = defaultdict(lambda: ([], []))
 

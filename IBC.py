@@ -14,20 +14,26 @@ from utils.print_utils import print_cluster_summary, print_phi_table, print_sepa
 
 def pipeline_function():
 
-    client = dask.distributed.Client(threads_per_worker=4)
-
     print_separator("Loading and merging reflections from all datasets")
 
+    start_time_load = time.perf_counter()
     canonical_datasets = load_and_canonicalize_datasets(
         "datasets",
         sg_symbol="P21"
     )
+    end_time_load = time.perf_counter()
+    elapsed_time_load = end_time_load - start_time_load
+    print(f"\nTotal time taken for loading datasets: {elapsed_time_load:.2f} seconds")
 
     print(f"Datasets loaded: {len(canonical_datasets)}")
 
     print_separator("Building correlation matrix")
 
+    start_time_cc = time.perf_counter()
     names, R, W = build_cc_matrix(canonical_datasets)
+    end_time_cc = time.perf_counter()
+    elapsed_time_load = end_time_cc - start_time_cc
+    print(f"\nTotal time taken for building cc matrix: {elapsed_time_load:.2f} seconds")
 
     print("\nCorrelation matrix:")
     print(np.array_str(R, precision=3, suppress_small=True))
