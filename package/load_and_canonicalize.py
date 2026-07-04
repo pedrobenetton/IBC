@@ -5,9 +5,7 @@ import dask
 
 @dask.delayed
 def read_hkl_file(path):
-    #print(f"Reading HKL file: {path}")
     dataset = defaultdict(lambda: ([], []))
-
     with open(path) as f:
         for line in f:
             if not line.strip() or line.startswith("!"):
@@ -22,7 +20,6 @@ def read_hkl_file(path):
 
             dataset[(h, k, l)][0].append(I)
             dataset[(h, k, l)][1].append(sigma)
-
     return dataset
 
 def canonicalize_hkl(hkl, spacegroup):
@@ -31,9 +28,8 @@ def canonicalize_hkl(hkl, spacegroup):
     return min(equivalents)
 
 @dask.delayed
-def group_symmetry_equivalents(dataset, sg_symbol="C121"):
-    #print(f"Grouping symmetry equivalents for dataset")
-    sg = gemmi.SpaceGroup(sg_symbol)
+def group_symmetry_equivalents(dataset, sg_number):
+    sg = gemmi.find_spacegroup_by_number(sg_number)
     merged = defaultdict(lambda: ([], []))
 
     for hkl, (I_vals, sigma_vals) in dataset.items():
@@ -43,24 +39,17 @@ def group_symmetry_equivalents(dataset, sg_symbol="C121"):
 
     return merged
 
-def load_and_canonicalize_single_dataset(path, sg_symbol):
+def load_and_canonicalize_single_dataset(path, sg_number):
     lazy_dataset = read_hkl_file(path)
-    lazy_merged = group_symmetry_equivalents(lazy_dataset, sg_symbol=sg_symbol)
-    return lazy_merged, path
+    lazy_merged = group_symmetry_equivalents(lazy_dataset, sg_number)
+    return lazy_merged
 
-
-def load_and_canonicalize_datasets(folder, sg_symbol="C121"):
-    lazy_results = []
-    path_list = []
+def load_and_canonicalize_datasets(folder, sg_number):
+    lazy_datasets = {}
 
     for path in sorted(glob.glob(f"{folder}/*.HKL")):
-        lazy_dataset, file_path = load_and_canonicalize_single_dataset(path, sg_symbol)
-        path_list.append(file_path)
-        lazy_results.append((lazy_dataset))
+        lazy_dataset = load_and_canonicalize_single_dataset(path, sg_number)
+        lazy_datasets[path] = lazy_dataset
 
-    print(f"Triggering parallel Dask execution graph...")
-
-    computed_datasets = dask.delayed(lazy_results).compute()
-
-    datasets = {path_list[i]: computed_datasets[i] for i in range(len(path_list))}
-    return datasets
+    print(f"Created Dask task graph recipes for {len(lazy_datasets)} datasets.")
+    return lazy_datasets

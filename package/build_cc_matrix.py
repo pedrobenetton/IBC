@@ -5,21 +5,23 @@ from package.compute_weighted_cc import compute_merged_dataset_with_sigma, compu
 def build_cc_matrix(canonical_datasets, weighted=True, use_counts_as_weights=False):
 
     names = list(canonical_datasets.keys())
-
     n = len(names)
 
-    print("Pre-merging reflections across all datasets...")
+    print("Building pre-merging task graph...")
+    lazy_merge_func = dask.delayed(compute_merged_dataset_with_sigma)
+
     pre_merged_datasets = {}
     for name in names:
-        pre_merged_datasets[name] = compute_merged_dataset_with_sigma(canonical_datasets[name])
+        pre_merged_datasets[name] = lazy_merge_func(canonical_datasets[name])
 
     print("Building pairwise correlation task graph...")
+    lazy_cc_func = dask.delayed(compute_pairwise_cc)
     lazy_pairs = []
     pair_indices = []
 
     for i in range(n):
         for j in range(i + 1, n):
-            lazy_task = compute_pairwise_cc(
+            lazy_task = lazy_cc_func(
                 pre_merged_datasets[names[i]], 
                 pre_merged_datasets[names[j]]
             )
@@ -27,7 +29,7 @@ def build_cc_matrix(canonical_datasets, weighted=True, use_counts_as_weights=Fal
             pair_indices.append((i, j))
 
     print(f"Triggering computation for {len(lazy_pairs)} unique pairs...")
-    computed_pairs = dask.delayed(lazy_pairs).compute()
+    computed_pairs = dask.compute(*lazy_pairs)
 
     R = np.eye(n)
     N = np.zeros((n, n))

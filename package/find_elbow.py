@@ -15,10 +15,8 @@ def find_elbow(phi_values):
     """
     phi_values = np.array(phi_values)
 
-    # second derivative approximation
     second_diff = np.diff(phi_values, n=2)
 
-    # elbow = max curvature
     elbow_idx = np.argmax(-second_diff) + 2  # shift index
 
     return elbow_idx

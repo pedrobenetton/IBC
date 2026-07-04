@@ -1,7 +1,7 @@
 import numpy as np
 from datetime import datetime
 import time
-import dask.distributed
+import dask.config
 from dask.diagnostics import Profiler, ResourceProfiler, visualize
 import os
 
@@ -14,16 +14,14 @@ from utils.print_utils import print_cluster_summary, print_phi_table, print_sepa
 
 def pipeline_function():
 
+    dask.config.set(scheduler='threads')
+
     print_separator("Loading and merging reflections from all datasets")
 
-    start_time_load = time.perf_counter()
     canonical_datasets = load_and_canonicalize_datasets(
         "datasets",
-        sg_symbol="P21"
+        sg_number=5
     )
-    end_time_load = time.perf_counter()
-    elapsed_time_load = end_time_load - start_time_load
-    print(f"\nTotal time taken for loading datasets: {elapsed_time_load:.2f} seconds")
 
     print(f"Datasets loaded: {len(canonical_datasets)}")
 
@@ -73,8 +71,6 @@ def pipeline_function():
 
     for name, label in zip(names, labels):
         print(f"{name:30s} -> {label}")
-
-    plot_reachability(model)
 
 def main():
     try:
