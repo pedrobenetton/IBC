@@ -1,6 +1,10 @@
 
 from sklearn.cluster import OPTICS
+import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime
+matplotlib.use('Agg') 
 
 def compute_smin(n, d, b=0.5):
     """
@@ -77,11 +81,34 @@ def plot_reachability(model):
 
     plt.show()
 
-def plot_points(X, filename="final_embedding.png"):
-    plt.figure(figsize=(8, 6))
-    plt.scatter(X[:, 0], X[:, 1], color='royalblue', alpha=0.8, edgecolors='k', s=80)
-    plt.grid(True, linestyle='--', alpha=0.5)
-    plt.xlabel("Dimension 1", fontsize=12)
-    plt.ylabel("Dimension 2", fontsize=12)
-    plt.title(f"Final Embedding (Shape: {X.shape})", fontsize=14, fontweight='bold')
-    plt.savefig(filename, dpi=300, bbox_inches='tight')
+def plot_multidimensional_grid(X, labels, project_name):
+    n_samples, d = X.shape
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename=f'{project_name}/multidim_grid_{d}_{timestamp}.png'
+    fig, axes = plt.subplots(d, d, figsize=(3*d, 3*d))
+    unique_labels=np.unique(labels)
+    cmap = plt.get_cmap('tab10')
+    cluster_only_labels = [l for l in unique_labels if l != -1]
+    for row in range(d):
+        for col in range(d):
+            ax = axes[row, col]
+
+            if row == col:
+                ax.text(0.5, 0.5, f"Dim {row+1}", horizontalalignment='center', verticalalignment='center', fontsize=14, fontweight='bold', transform=ax.transAxes)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                continue
+
+            for label_id in unique_labels:
+                mask = (labels == label_id)
+                points = X[mask]
+                color = 'lightgray' if label_id == -1 else cmap(cluster_only_labels.index(label_id) % cmap.N)
+                alpha = 0.4 if label_id == -1 else 0.8
+                ax.scatter(points[:,col], points[:,row], color=color, alpha=alpha, s=20, edgecolors='none')
+                ax.grid(True, linestyle='--', alpha=0.3)
+                ax.tick_params(labelsize=8)
+            
+    plt.suptitle(f"Pairwise Matrix Dimension View (d={d} Configuration)", fontsize=16, fontweight='bold', y=0.98)
+    plt.tight_layout()
+    plt.savefig(output_filename, dpi=200)
+    plt.close('all')

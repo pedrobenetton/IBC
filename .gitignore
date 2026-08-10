@@ -1,4 +1,7 @@
 **/__pycache__
-datasets
+datasets*
 environment.txt
 dask_profile_*
+IBC.html
+dials/
+fragment_screening/

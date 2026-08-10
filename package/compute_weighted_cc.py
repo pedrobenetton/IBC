@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 
 def merge_intensity_and_sigma(I, sigma):
     """

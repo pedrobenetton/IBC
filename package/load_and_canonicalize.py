@@ -47,7 +47,9 @@ def load_and_canonicalize_single_dataset(path, sg_number):
 def load_and_canonicalize_datasets(folder, sg_number):
     lazy_datasets = {}
 
-    for path in sorted(glob.glob(f"{folder}/*.HKL")):
+    datasets_list = sorted(glob.glob(f"{folder}/*.HKL"))
+
+    for path in datasets_list:
         lazy_dataset = load_and_canonicalize_single_dataset(path, sg_number)
         lazy_datasets[path] = lazy_dataset
 

@@ -17,6 +17,6 @@ def find_elbow(phi_values):
 
     second_diff = np.diff(phi_values, n=2)
 
-    elbow_idx = np.argmax(-second_diff) + 2  # shift index
+    elbow_idx = np.argmax(-second_diff) + 2
 
     return elbow_idx
