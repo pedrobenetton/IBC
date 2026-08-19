@@ -33,45 +33,24 @@ def merge_intensity_and_sigma(I, sigma):
 
 def compute_merged_dataset_with_sigma(dataset):
     """
-    Merge all reflections in a dataset.
-
-    Parameters
-    ----------
-    dataset : dict
-        Keys = reflection ids (e.g. hkl)
-        Values = (I_array, sigma_array)
-
-    Returns
-    -------
-    dict
-        Keys = reflection ids
-        Values = (merged_intensity, merged_sigma)
+    Vectorized reflection merger using bincount operations.
     """
-    hkl_list = []
-    I_list = []
-    sigma_list = []
+    hkl = dataset["hkl_encoded"]
+    I = dataset["I"]
+    sigma = dataset["sigma"]
 
-    for (h, k, l), (I_vals, sigma_vals) in dataset.items():
-        hkl_encoded = ((int(h) + 512) << 40) | ((int(k) + 512) << 20) | (int(l) + 512)
-        for I_val, sig_val in zip(I_vals, sigma_vals):
-            hkl_list.append(hkl_encoded)
-            I_list.append(I_val)
-            sigma_list.append(sig_val)
-    hkl = np.array(hkl_list, dtype=np.int64)
-    I = np.array(I_list, dtype=np.float32)
-    sigma = np.array(sigma_list, dtype=np.float32)
+    if len(hkl) == 0:
+        return {"hkl": np.array([]), "I": np.array([]), "sigma": np.array([])}
+
     sort_idx = np.argsort(hkl)
     hkl = hkl[sort_idx]
     I = I[sort_idx]
     sigma = sigma[sort_idx]
+
     unique_hkl, index, counts = np.unique(hkl, return_index=True, return_counts=True)
 
     if len(unique_hkl) == len(hkl):
-        return {
-            "hkl": unique_hkl,
-            "I": I,
-            "sigma": sigma
-        }
+        return {"hkl": unique_hkl, "I": I, "sigma": sigma}
 
     weights = 1.0 / (sigma ** 2)
     unq_inv = np.searchsorted(unique_hkl, hkl)
@@ -82,11 +61,7 @@ def compute_merged_dataset_with_sigma(dataset):
     merged_I = sum_wI / sum_w
     merged_sigma = np.sqrt(1.0 / sum_w)
 
-    return {
-        "hkl": unique_hkl,
-        "I": merged_I,
-        "sigma": merged_sigma
-    }
+    return {"hkl": unique_hkl, "I": merged_I, "sigma": merged_sigma}
 
 def weighted_cc(x, y, sigma_x, sigma_y):
     """

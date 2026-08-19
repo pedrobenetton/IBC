@@ -23,7 +23,7 @@ from utils.parse_args import parse_args
 
 def pipeline_function(input_folder, project_name, sg_number, d_max, use_cache, force_recalculate, minimize_method, use_spectral_init):
 
-    dask.config.set(scheduler="threads")
+    dask.config.set(scheduler="processes")
 
     print_separator("Loading and merging reflections from all datasets")
 
