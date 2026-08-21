@@ -24,4 +24,6 @@ def load_and_canonicalize_datasets(input_folder, sg_number, num_threads=8):
             "sigma": np.array(item.sig_i_mean, dtype=np.float32),
         }
 
+        print(canonical_datasets)
+
     return canonical_datasets

@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <omp.h>
 #include <gemmi/mtz.hpp>
+#include <iostream>
 
 namespace py = pybind11;
 namespace fs = std::filesystem;
@@ -44,16 +45,21 @@ DatasetPayload process_single_file(const std::string& filepath) {
         payload.spacegroup = mtz.spacegroup_name;
 
         int idx_i = find_column_index(mtz, "IMEAN");
-        if (idx_i < 0) idx_i = find_column_index(mtz, "FP");
+        if (idx_i < 0) idx_i = find_column_index(mtz, "I");
 
         int idx_s = find_column_index(mtz, "SIGIMEAN");
-        if (idx_s < 0) idx_s = find_column_index(mtz, "SIGFP");
+        if (idx_s < 0) idx_s = find_column_index(mtz, "SIGI");
 
         int idx_h = find_column_index(mtz, "H");
         int idx_k = find_column_index(mtz, "K");
         int idx_l = find_column_index(mtz, "L");
 
         if (idx_i < 0 || idx_s < 0 || idx_h < 0 || idx_k < 0 || idx_l < 0) {
+            // std::cout << "idx_i: " << idx_i << std::endl;
+            // std::cout << "idx_s: " << idx_s << std::endl;
+            // std::cout << "idx_h: " << idx_h << std::endl;
+            // std::cout << "idx_k: " << idx_k << std::endl;
+            // std::cout << "idx_l: " << idx_l << std::endl;
             payload.success = false;
             payload.error_msg = "Required HKL or Intensity/Sigma columns not found.";
             return payload;
