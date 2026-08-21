@@ -1,14 +1,11 @@
-from datetime import datetime
 import os
 import time
 
-import dask.config
-from dask.diagnostics import Profiler, ResourceProfiler, visualize
 import numpy as np
 
-from package.build_cc_matrix import build_cc_matrix
+import fast_mtz
+
 from package.find_elbow import find_elbow
-from package.load_and_canonicalize import load_and_canonicalize_datasets
 from package.optics_clustering import (
     plot_multidimensional_grid,
     run_optics_clustering,
@@ -21,7 +18,6 @@ from utils.print_utils import (
 )
 from utils.parse_args import parse_args
 
-
 def pipeline_function(
     input_folder,
     project_name,
@@ -33,20 +29,9 @@ def pipeline_function(
     use_spectral_init,
     num_threads=8,
 ):
-
-    dask.config.set(scheduler="threads")
-
-    print_separator("Loading and merging reflections from all datasets")
+    print_separator("Building correlation matrix via C++")
 
     cache_file = f"{project_name}/cc_matrix.npz"
-
-    canonical_datasets = load_and_canonicalize_datasets(
-        input_folder, sg_number, num_threads=num_threads
-    )
-
-    print(f"Datasets loaded: {len(canonical_datasets)}")
-
-    print_separator("Building correlation matrix")
 
     if use_cache and not force_recalculate and os.path.exists(cache_file):
         print_separator(f"Loading cached correlation matrix from {cache_file}")
@@ -56,7 +41,19 @@ def pipeline_function(
         W = data["W"]
     else:
         start_time_cc = time.perf_counter()
-        names, R, W = build_cc_matrix(canonical_datasets)
+
+        matrix_result = fast_mtz.compute_cc_matrix(
+            dir_path=input_folder,
+            sg_number=sg_number,
+            use_counts_as_weights=False,
+            num_threads=num_threads,
+        )
+
+        names = matrix_result.filenames
+        R = matrix_result.R
+        W = matrix_result.W
+
+        print(f"Datasets loaded and processed: {len(names)}")
 
         if use_cache:
             np.savez_compressed(cache_file, names=names, R=R, W=W)
@@ -101,7 +98,9 @@ def pipeline_function(
 
     print("\nCluster labels:")
 
-    for name, label in zip(names, labels):
+    sorted_pairs = sorted(zip(names, labels), key=lambda x: x[0])
+
+    for name, label in sorted_pairs:
         print(f"{name:30s} -> {label}")
 
     plot_multidimensional_grid(X, labels, project_name)
@@ -125,43 +124,25 @@ def main():
 
     os.makedirs(project_name, exist_ok=True)
 
-    if args.benchmark:
-        start_time = time.perf_counter()
-        with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof:
-            pipeline_function(
-                input_folder,
-                project_name,
-                sg_number,
-                d_max,
-                use_cache,
-                force_recalculate,
-                minimize_method,
-                use_spectral_init,
-                num_threads=available_cpus,
-            )
-        end_time = time.perf_counter()
-        elapsed_time = end_time - start_time
+    start_time = time.perf_counter()
 
-        print(f"\nTotal time taken: {elapsed_time:.2f} seconds")
-        print(f"CPUs utilized: {available_cpus}\n")
+    pipeline_function(
+        input_folder,
+        project_name,
+        sg_number,
+        d_max,
+        use_cache,
+        force_recalculate,
+        minimize_method,
+        use_spectral_init,
+        num_threads=available_cpus,
+    )
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
 
-        report_filename = f"{project_name}/dask_profile_{timestamp}.html"
-        visualize([prof, rprof], filename=report_filename)
-    else:
-        pipeline_function(
-            input_folder,
-            project_name,
-            sg_number,
-            d_max,
-            use_cache,
-            force_recalculate,
-            minimize_method,
-            use_spectral_init,
-            num_threads=available_cpus,
-        )
-
+    print(f"\nTotal pipeline time taken: {elapsed_time:.2f} seconds")
+    print(f"CPUs utilized: {available_cpus}\n")
 
 if __name__ == "__main__":
     main()

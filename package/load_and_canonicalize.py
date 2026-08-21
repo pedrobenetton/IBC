@@ -1,6 +1,7 @@
 # package/load_and_canonicalize.py
 import numpy as np
 import fast_mtz
+import sys
 
 def load_and_canonicalize_datasets(input_folder, sg_number, num_threads=8):
     """
@@ -27,3 +28,6 @@ def load_and_canonicalize_datasets(input_folder, sg_number, num_threads=8):
         print(canonical_datasets)
 
     return canonical_datasets
+
+if __name__== '__main__':
+    load_and_canonicalize_datasets(sys.argv[1], 1)
