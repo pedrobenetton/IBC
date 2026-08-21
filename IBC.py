@@ -21,16 +21,27 @@ from utils.print_utils import (
 )
 from utils.parse_args import parse_args
 
-def pipeline_function(input_folder, project_name, sg_number, d_max, use_cache, force_recalculate, minimize_method, use_spectral_init):
 
-    dask.config.set(scheduler="processes")
+def pipeline_function(
+    input_folder,
+    project_name,
+    sg_number,
+    d_max,
+    use_cache,
+    force_recalculate,
+    minimize_method,
+    use_spectral_init,
+    num_threads=8,
+):
+
+    dask.config.set(scheduler="threads")
 
     print_separator("Loading and merging reflections from all datasets")
 
     cache_file = f"{project_name}/cc_matrix.npz"
 
     canonical_datasets = load_and_canonicalize_datasets(
-        input_folder, sg_number
+        input_folder, sg_number, num_threads=num_threads
     )
 
     print(f"Datasets loaded: {len(canonical_datasets)}")
@@ -62,7 +73,9 @@ def pipeline_function(input_folder, project_name, sg_number, d_max, use_cache, f
 
     print_separator("Scanning embedding dimensions")
 
-    X_vals, phi_vals = scan_dimensions(R, minimize_method, use_spectral_init, d_max=d_max, W=W)
+    X_vals, phi_vals = scan_dimensions(
+        R, minimize_method, use_spectral_init, d_max=d_max, W=W
+    )
 
     print_phi_table(phi_vals)
 
@@ -71,7 +84,6 @@ def pipeline_function(input_folder, project_name, sg_number, d_max, use_cache, f
     print(f"\nOptimal dimension: {optimal_d}")
 
     X = X_vals[optimal_d - 1]
-
     final_phi = phi_vals[optimal_d - 1]
 
     print_separator("Final embedding")
@@ -106,14 +118,14 @@ def main():
     use_spectral_init = args.use_spectral_init
     input_folder = args.input_folder
 
+    try:
+        available_cpus = len(os.sched_getaffinity(0))
+    except AttributeError:
+        available_cpus = os.cpu_count() or 4
+
     os.makedirs(project_name, exist_ok=True)
 
     if args.benchmark:
-        try:
-            available_cpus = len(os.sched_getaffinity(0))
-        except AttributeError:
-            available_cpus = os.cpu_count()
-
         start_time = time.perf_counter()
         with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof:
             pipeline_function(
@@ -124,7 +136,8 @@ def main():
                 use_cache,
                 force_recalculate,
                 minimize_method,
-                use_spectral_init
+                use_spectral_init,
+                num_threads=available_cpus,
             )
         end_time = time.perf_counter()
         elapsed_time = end_time - start_time
@@ -145,8 +158,10 @@ def main():
             use_cache,
             force_recalculate,
             minimize_method,
-            use_spectral_init
+            use_spectral_init,
+            num_threads=available_cpus,
         )
+
 
 if __name__ == "__main__":
     main()

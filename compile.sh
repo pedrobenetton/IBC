@@ -1,0 +1,1 @@
+g++ -O3 -shared -std=c++17 -fPIC -fopenmp   mtz_reader_py.cpp   $(python -m pybind11 --includes)   -I$HOME/.local/include   -L$HOME/.local/lib   -Wl,-rpath,$HOME/.local/lib   -lgemmi_cpp -lz   -o fast_mtz$(python3-config --extension-suffix)
