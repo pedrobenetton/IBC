@@ -5,3 +5,14 @@ dask_profile_*
 IBC.html
 dials/
 fragment_screening/
+dials_dev/
+dials_test/
+fast_mtz.cpython-314-x86_64-linux-gnu.so
+final_test/
+fragment_screening_dev/
+fragment_screening_dev_dorothy/
+mtz_fs/
+mtz_fs_results/
+mtz_fs_teste/
+mtz_reader
+mtz_reader.cpp
