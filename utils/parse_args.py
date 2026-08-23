@@ -7,13 +7,6 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-b",
-        "--benchmark",
-        action="store_true",
-        help="Enable Dask resource profiling and benchmarking.",
-    )
-
-    parser.add_argument(
         "-i",
         "--input-folder",
         type=str,
@@ -33,8 +26,8 @@ def parse_args():
         "-s",
         "--sg-number",
         type=int,
-        default=1,
-        help="Space Group Number of the datasets",
+        default=0,
+        help="Space Group Number of the datasets (I will be read from mtz if not provided)",
     )
 
     parser.add_argument(
