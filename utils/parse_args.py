@@ -39,6 +39,14 @@ def parse_args():
     )
 
     parser.add_argument(
+        "-fd",
+        "--force-dim",
+        type=int,
+        default=0,
+        help="Force a dimension to be chosen, rather than use elbow rule. If 0 (default), elbow rule is used.",
+    )
+
+    parser.add_argument(
         "-m",
         "--scan-method",
         choices=["gradient_descent", "simulated_annealing", "lbfgs"],
@@ -64,6 +72,14 @@ def parse_args():
         "--force-recalculate",
         action="store_true",
         help="Ignore existing .npz cache file and force recalculation, but save the result.",
+    )
+
+    parser.add_argument(
+        "-b",
+        "--buffer-parameter",
+        type=float,
+        default=0.5,
+        help="Buffer parameter for s_min OPTICS clustering (default = 0.5)"
     )
 
     return parser.parse_args()

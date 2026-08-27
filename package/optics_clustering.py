@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime
 matplotlib.use('Agg') 
 
-def compute_smin(n, d, b=0.5):
+def compute_smin(n, d, b):
     """
     Compute s_min parameter (Eq. 9).
 
@@ -17,7 +17,7 @@ def compute_smin(n, d, b=0.5):
     d : int
         Embedding dimension
     b : float, optional
-        Buffer parameter (default = 0.5)
+        Buffer parameter (default = 0.5 from arg parsing)
 
     Returns
     -------
@@ -26,7 +26,7 @@ def compute_smin(n, d, b=0.5):
     """
     return max(5, int(b * (n / d)))
 
-def run_optics_clustering(X, b=0.5, xi=0.05):
+def run_optics_clustering(X, buffer_parameter, xi=0.05):
     """
     Perform OPTICS clustering on embedded coordinates.
 
@@ -35,7 +35,7 @@ def run_optics_clustering(X, b=0.5, xi=0.05):
     X : ndarray (n, d)
         Cosym embedding coordinates
     b : float, optional
-        Buffer parameter for s_min (default = 0.5)
+        Buffer parameter for s_min (default = 0.5 from arg parsing)
     xi : float, optional
         Steepness parameter for cluster detection (default = 0.05)
 
@@ -48,7 +48,7 @@ def run_optics_clustering(X, b=0.5, xi=0.05):
     """
     n, d = X.shape
 
-    smin = compute_smin(n, d, b=b)
+    smin = compute_smin(n, d, b=buffer_parameter)
 
     model = OPTICS(
         min_samples=smin,

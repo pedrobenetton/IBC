@@ -17,21 +17,31 @@ from utils.print_utils import (
     print_separator,
 )
 from utils.parse_args import parse_args
+from utils.create_run_folder import create_run_folder
 
 def pipeline_function(
+    args,
     input_folder,
     project_name,
     sg_number,
     d_max,
+    forced_dimension,
     use_cache,
     force_recalculate,
     minimize_method,
     use_spectral_init,
+    buffer_parameter,
     num_threads=8,
 ):
     print_separator("Building correlation matrix via C++")
 
-    cache_file = f"{project_name}/cc_matrix.npz"
+    project_folder = create_run_folder(project_name)
+
+    with open(f"{project_folder}/arguments.txt", "w") as f:
+        for key, value in vars(args).items():
+            f.write(f"{key}: {value}\n")
+
+    cache_file = f"{project_folder}/cc_matrix.npz"
 
     if use_cache and not force_recalculate and os.path.exists(cache_file):
         print_separator(f"Loading cached correlation matrix from {cache_file}")
@@ -76,7 +86,11 @@ def pipeline_function(
 
     print_phi_table(phi_vals)
 
-    optimal_d = find_elbow(phi_vals)
+    if forced_dimension == 0:
+        optimal_d = find_elbow(phi_vals)
+    else:
+        print(f"\nUsing dimension {forced_dimension} (forced by input).")
+        optimal_d = forced_dimension
 
     print(f"\nOptimal dimension: {optimal_d}")
 
@@ -92,7 +106,7 @@ def pipeline_function(
 
     print_separator("Running OPTICS clustering")
 
-    labels, model = run_optics_clustering(X)
+    labels, model = run_optics_clustering(X, buffer_parameter)
 
     print_cluster_summary(labels)
 
@@ -103,7 +117,7 @@ def pipeline_function(
     for name, label in sorted_pairs:
         print(f"{name:30s} -> {label}")
 
-    plot_multidimensional_grid(X, labels, project_name)
+    plot_multidimensional_grid(X, labels, project_folder)
 
 def main():
     args = parse_args()
@@ -116,6 +130,8 @@ def main():
     minimize_method = args.scan_method
     use_spectral_init = args.use_spectral_init
     input_folder = args.input_folder
+    forced_dimension = args.force_dim
+    buffer_parameter = args.buffer_parameter
 
     try:
         available_cpus = len(os.sched_getaffinity(0))
@@ -127,14 +143,17 @@ def main():
     start_time = time.perf_counter()
 
     pipeline_function(
+        args,
         input_folder,
         project_name,
         sg_number,
         d_max,
+        forced_dimension,
         use_cache,
         force_recalculate,
         minimize_method,
         use_spectral_init,
+        buffer_parameter,
         num_threads=available_cpus,
     )
 
