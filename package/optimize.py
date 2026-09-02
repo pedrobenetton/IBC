@@ -28,7 +28,7 @@ def phi_squared(X, R, W=None):
     diff = R - X @ X.T
 
     if W is None:
-        return 0.5 * np.sum(diff**2)
+        return 2 * np.sum(diff**2)
 
     return 0.5 * np.sum(W * diff**2)
 
@@ -78,7 +78,7 @@ def get_initial_X(R, d, use_spectral_init):
             np.sqrt(np.maximum(eigvals[:d], 0))
         ) * 0.1
     else:
-        X0 = np.random.normal(size=(n, d))
+        X0 = np.random.normal(size=(n, d)) * 5
 
     return X0
 
@@ -221,7 +221,7 @@ def scan_dimensions(R, minimize_method, use_spectral_init, d_max, W=None):
         print(f"Scanning dimension {d}...")
         if minimize_method == "lbfgs":
             X, phi_val = optimize_X_LBFGS(R, d, use_spectral_init, W)
-        elif minimize_method == "simmulated_annealing":
+        elif minimize_method == "simulated_annealing":
             X, phi_val = optimize_X_annealing(R, d, use_spectral_init, W)
         elif minimize_method == "gradient_descent":
             X, phi_val = optimize_X_gradient_descent(R, d, use_spectral_init, W)

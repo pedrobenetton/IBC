@@ -9,6 +9,7 @@ from package.find_elbow import find_elbow
 from package.optics_clustering import (
     plot_multidimensional_grid,
     run_optics_clustering,
+    plot_multidimensional_grid_annotated,
 )
 from package.optimize import scan_dimensions
 from utils.print_utils import (
@@ -18,6 +19,8 @@ from utils.print_utils import (
 )
 from utils.parse_args import parse_args
 from utils.create_run_folder import create_run_folder
+
+from collections import Counter, defaultdict
 
 def pipeline_function(
     args,
@@ -114,10 +117,48 @@ def pipeline_function(
 
     sorted_pairs = sorted(zip(names, labels), key=lambda x: x[0])
 
-    for name, label in sorted_pairs:
-        print(f"{name:30s} -> {label}")
+    sorted_pairs = sorted(zip(names, labels), key=lambda x: x[0])
+    sorted_names = [pair[0] for pair in sorted_pairs]
 
-    plot_multidimensional_grid(X, labels, project_folder)
+    sample_map = {}
+    metadata_file = "runs/hTTR_P21212/hTTR_P21212.txt"
+    with open(metadata_file, "r") as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) >= 2:
+                sample_map[parts[0].strip().replace('hTTR_P21212-x', '')] = parts[1].strip()
+
+    cluster_groups = defaultdict(list)
+    type_to_clusters = defaultdict(Counter)
+
+    print("\n" + "="*80)
+    print(f"{'Filename':<25} | {'Ground Truth State':<20} | {'Assigned Cluster'}")
+    print("="*80)
+
+    for name, label in sorted_pairs:
+        clean_name = name.replace('.mtz', '')
+        sample_type = sample_map.get(clean_name, "UNKNOWN")
+
+        cluster_groups[label].append((name, sample_type))
+        type_to_clusters[sample_type][label] += 1
+
+        cluster_str = f"Cluster {label}" if label != -1 else "Noise / Outlier (-1)"
+        print(f"{name:<25} | {sample_type:<20} | {cluster_str}")
+
+    print("\n" + "="*80)
+    print("CLUSTER COMPOSITION MATRIX")
+    print("="*80)
+    all_clusters = sorted(list(cluster_groups.keys()))
+    header = f"{'Sample Type':<20} | " + " | ".join([f"{f'Cluster {c}' if c != -1 else 'Outliers (-1)':<12}" for c in all_clusters])
+    print(header)
+    print("-" * len(header))
+
+    for stype, counts in type_to_clusters.items():
+        row = f"{stype:<20} | " + " | ".join([f"{counts[c]:<12}" for c in all_clusters])
+        print(row)
+    print("="*80)
+
+    plot_multidimensional_grid_annotated(X, labels, sorted_names, metadata_file, project_folder)
 
 def main():
     args = parse_args()
